@@ -1,0 +1,61 @@
+# Platform Policy: Data Exfiltration Prevention
+# Scope: Platform (IMMUTABLE BASELINE)
+# Applies to: All agents handling Confidential or Restricted data
+
+id: PLT-SAFETY-002
+name: data-exfiltration-prevention
+domain: Safety
+scope: Platform
+version: "1.0.0"
+status: Active
+enforcement_mode: Block
+
+description: >
+  AI agents and workflows handling Confidential or Restricted data must have
+  output content classification enabled to detect and prevent data exfiltration
+  through model outputs.
+
+applicability:
+  artifact_types: [Agent, Workflow]
+  conditions:
+    - field: data_classification
+      operator: in
+      values: [Confidential, Restricted, TopSecret]
+
+requirements:
+  - id: REQ-001
+    description: "Output content classification MUST be enabled"
+    check:
+      service: security-service
+      method: ClassifyContent
+      applied_to: outputs
+
+  - id: REQ-002
+    description: "Unusual output volume MUST be monitored"
+    check:
+      service: observability-service
+      feature: output_volume_monitoring
+      enabled: true
+
+  - id: REQ-003
+    description: "Data sensitivity context MUST be declared in artifact manifest"
+    check:
+      field: data_classification
+      operator: not_null
+
+  - id: REQ-004
+    description: "External API tools MUST be reviewed when accessing Restricted data"
+    check:
+      condition: if_has_external_api_tools_then_security_review_required
+
+actions:
+  on_exfiltration_detected:
+    - Block output
+    - Log SecurityEvent[DataExfiltration] with Critical severity
+    - Notify artifact owner and security team immediately
+    - Trigger automatic incident creation
+
+effective_from: "2026-01-01"
+effective_to: null
+owner: governance-platform-team
+review_cycle: 6 months

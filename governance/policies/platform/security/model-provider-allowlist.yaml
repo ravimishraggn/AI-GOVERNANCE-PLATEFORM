@@ -1,0 +1,82 @@
+# Platform Policy: Approved Model Provider Allowlist
+# Scope: Platform (IMMUTABLE BASELINE)
+# Applies to: All agents using LLM providers
+
+id: PLT-SEC-001
+name: model-provider-allowlist
+domain: Security
+scope: Platform
+version: "1.0.0"
+status: Active
+enforcement_mode: Block
+
+description: >
+  Only model providers that have been onboarded through the formal model governance
+  process may be used on the platform. Using unapproved providers bypasses security
+  review, data retention review, and MRM certification.
+
+applicability:
+  artifact_types: [Agent, Workflow]
+  conditions: []  # Applies to ALL agents
+
+approved_providers:
+  - id: anthropic
+    display_name: Anthropic
+    onboarded: "2025-01-15"
+    approved_models: [claude-opus-4-8, claude-sonnet-4-6, claude-haiku-4-5-20251001]
+    data_retention_policy: no-retention
+    dpa_signed: true
+
+  - id: openai
+    display_name: OpenAI
+    onboarded: "2025-01-15"
+    approved_models: [gpt-4o, gpt-4o-mini, o1, o3-mini]
+    data_retention_policy: 30-day-opt-out
+    dpa_signed: true
+
+  - id: azure-openai
+    display_name: Microsoft Azure OpenAI
+    onboarded: "2025-02-01"
+    approved_models: [gpt-4o, gpt-4o-mini]
+    data_retention_policy: customer-controlled
+    dpa_signed: true
+    notes: "Preferred for EU tenants due to data residency controls"
+
+  - id: google-vertex
+    display_name: Google Vertex AI
+    onboarded: "2025-03-01"
+    approved_models: [gemini-1.5-pro, gemini-1.5-flash]
+    data_retention_policy: 30-day
+    dpa_signed: true
+
+requirements:
+  - id: REQ-001
+    description: "primary_model MUST reference an approved provider's model"
+    check:
+      field: primary_model
+      operator: in_approved_provider_models
+
+  - id: REQ-002
+    description: "All fallback_models MUST reference approved provider models"
+    check:
+      field: fallback_models
+      operator: all_in_approved_provider_models
+
+actions:
+  on_unapproved_provider:
+    - Block deployment
+    - Notify artifact owner with list of approved alternatives
+    - Log policy violation in audit trail
+
+exception_process:
+  allowed: true
+  requires:
+    - Security assessment of the proposed provider
+    - Data retention policy review
+    - MRM team review
+    - Governance committee approval
+
+effective_from: "2026-01-01"
+effective_to: null
+owner: platform-engineering-team
+review_cycle: 6 months

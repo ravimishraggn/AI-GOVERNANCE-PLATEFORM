@@ -1,0 +1,69 @@
+# Platform Policy: Prompt Injection Prevention
+# Scope: Platform (IMMUTABLE BASELINE — no tenant can disable this)
+# Applies to: All agents and workflows that accept user-controlled input
+
+id: PLT-SAFETY-001
+name: prompt-injection-prevention
+domain: Safety
+scope: Platform
+version: "1.0.0"
+status: Active
+enforcement_mode: Block
+
+description: >
+  All AI agents and workflows that accept user-controlled input MUST have prompt
+  injection detection enabled. This policy prevents malicious user inputs from
+  overriding system prompt instructions.
+
+applicability:
+  artifact_types:
+    - Agent
+    - Workflow
+  conditions:
+    - field: agent_type
+      operator: in
+      values: [Conversational, TaskExecution, Research, Analysis]
+
+requirements:
+  - id: REQ-001
+    description: "Security Service injection detection MUST be called for all user inputs"
+    check:
+      service: security-service
+      method: EvaluateSecurityContext
+      must_include: [PromptInjection]
+
+  - id: REQ-002
+    description: "System prompt MUST be architecturally separated from user input"
+    check:
+      field: prompt_architecture
+      condition: system_and_user_separated
+
+  - id: REQ-003
+    description: "Security assessment for injection risk MUST be completed before deployment"
+    check:
+      field: prompt_injection_assessment.risk_level
+      operator: not_equal
+      value: null
+
+actions:
+  on_violation: Block
+  on_detected_injection: Block and log SecurityEvent[PromptInjection]
+  on_bypass_attempt: Block and escalate to SecurityTeam
+
+exceptions:
+  allowed: false
+  # Prompt injection prevention has no exceptions.
+  # This is a zero-tolerance platform baseline.
+
+rationale: >
+  Prompt injection is the primary attack vector for AI systems that accept user input.
+  In private markets contexts, a successful injection could cause an AI system to:
+  - Override valuation methodology instructions
+  - Extract confidential deal information from context
+  - Bypass compliance controls embedded in system prompts
+  - Cause the agent to act outside its authorized scope
+
+effective_from: "2026-01-01"
+effective_to: null
+owner: governance-platform-team
+review_cycle: 6 months

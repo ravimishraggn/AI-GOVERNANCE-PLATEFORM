@@ -1,0 +1,48 @@
+# Platform Policy: Audit Logging Requirements
+# Scope: Platform (IMMUTABLE BASELINE)
+
+id: PLT-SEC-002
+name: audit-logging-requirements
+domain: Security
+scope: Platform
+version: "1.0.0"
+status: Active
+enforcement_mode: Block
+
+description: >
+  All AI artifacts MUST emit governance audit events through the Governance SDK.
+  Manual audit logging is prohibited — only the Governance SDK produces audit-compliant
+  events with the required cryptographic properties.
+
+applicability:
+  artifact_types: [Agent, Workflow]
+  conditions: []  # All artifacts
+
+requirements:
+  - id: REQ-001
+    description: "Governance SDK MUST be used for all LLM invocations"
+    check:
+      condition: governance_sdk_detected_in_deployment
+
+  - id: REQ-002
+    description: "Audit events MUST include governance context (policy decision ID, risk score snapshot)"
+    check:
+      condition: governance_sdk_version_gte("1.0.0")
+
+  - id: REQ-003
+    description: "Audit events MUST be emitted for all tool calls"
+    check:
+      condition: tool_call_audit_enabled
+
+  - id: REQ-004
+    description: "Artifacts MUST NOT implement custom audit logging that bypasses Governance SDK"
+    check:
+      condition: no_custom_audit_bypasses
+
+actions:
+  on_missing_sdk: Block deployment
+  on_bypass_detected: Immediate security incident + block artifact
+
+effective_from: "2026-01-01"
+effective_to: null
+owner: governance-platform-team

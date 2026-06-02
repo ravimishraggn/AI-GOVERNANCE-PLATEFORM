@@ -1,0 +1,83 @@
+# Approval Workflow: Tier 1 — Automated Clearance
+# Applies to: Artifacts with risk score 0.0–4.0 and all policy checks passing
+
+id: WF-APPROVAL-TIER1
+name: tier-1-automated-clearance
+version: "1.0.0"
+applicable_to:
+  risk_score_max: 4.0
+  policy_violations_allowed: 0
+  evaluation_status: passed
+
+description: >
+  Fully automated approval workflow for low-risk artifacts that meet all policy
+  requirements and pass all applicable evaluation benchmarks. No human review
+  required. Target completion: under 5 minutes.
+
+stages:
+  - id: STAGE-1
+    name: pre_flight_check
+    type: automated
+    timeout_minutes: 2
+    checks:
+      - name: manifest_completeness
+        validator: registry-service
+        method: ValidateManifest
+        required_fields: [canonical_name, business_owner, technical_owner, agent_type,
+                          autonomy_level, primary_model, data_classification]
+
+      - name: model_certification
+        validator: registry-service
+        method: CheckModelCertification
+        requirement: primary_model.mrm_certification.status == "Certified"
+
+      - name: policy_compliance
+        validator: policy-service
+        method: EvaluatePolicy
+        requirement: all_policies_pass
+
+      - name: evaluation_clearance
+        validator: evaluation-service
+        method: CheckEvaluationClearance
+        requirement: latest_scorecard.certification_eligible == true
+
+      - name: risk_score
+        validator: risk-service
+        method: GetRiskProfile
+        requirement: risk_profile.composite_score <= 4.0
+
+    on_all_pass:
+      next_stage: STAGE-2
+    on_any_fail:
+      action: reject_with_detail
+      # Returns specific failures for the team to address before resubmitting
+
+  - id: STAGE-2
+    name: automated_approval
+    type: automated
+    actions:
+      - Register approval record in Approval Service
+      - Update artifact status to Certified in Registry
+      - Activate SDK credentials
+      - Emit artifact.deployed event
+      - Send approval notification to artifact owner
+
+outcome:
+  on_success:
+    status: Approved
+    notification: |
+      Your artifact has received automated governance clearance.
+      Artifact ID: {artifact_id}
+      Governance clearance ID: {clearance_id}
+      Risk tier: {risk_tier}
+      Active policies: {policy_count}
+      Valid until: {certification_expiry}
+
+  on_failure:
+    status: Blocked
+    notification: |
+      Your artifact did not pass automated clearance. Specific failures:
+      {failure_details}
+
+      See the Developer Portal for remediation guidance:
+      {portal_url}/artifacts/{artifact_id}/governance

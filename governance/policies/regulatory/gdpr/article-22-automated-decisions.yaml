@@ -1,0 +1,68 @@
+# Regulatory Policy: GDPR Article 22 — Automated Decision-Making
+# Scope: Regulatory
+# Applies to: Tenants in EU jurisdiction processing EU data subjects
+
+id: REG-GDPR-ART22-001
+name: gdpr-article-22-automated-decisions
+domain: Compliance
+scope: Regulatory
+version: "1.0.0"
+status: Active
+enforcement_mode: Block
+
+description: >
+  Implements requirements from GDPR Article 22 for automated decision-making that
+  produces legal or similarly significant effects on individuals. Requires human
+  oversight capability and explainability for covered AI decisions.
+
+applicability:
+  tenant_criteria:
+    gdpr_applicable: true
+  artifact_types: [Agent, Workflow]
+  conditions:
+    - field: produces_decisions_affecting_individuals
+      operator: equals
+      value: true
+
+requirements:
+  - id: GDPR-ART22-REQ-001
+    regulation_reference: "GDPR Article 22(1)"
+    description: "Human review capability MUST be available for all automated decisions affecting individuals"
+    check:
+      field: autonomy_level
+      operator: not_equal
+      value: FullyAutonomous
+    alternative:
+      condition: human_review_workflow_configured
+
+  - id: GDPR-ART22-REQ-002
+    regulation_reference: "GDPR Article 22(3) - Right to explanation"
+    description: "System MUST be capable of providing meaningful explanation for automated decisions"
+    check:
+      field: explainability_requirement
+      operator: in
+      values: [Basic, Full, Regulatory]
+
+  - id: GDPR-ART22-REQ-003
+    regulation_reference: "GDPR Article 22(3) - Right to contest"
+    description: "Process for individuals to contest decisions MUST be documented"
+    check:
+      field: gdpr_contest_process
+      operator: not_null
+
+  - id: GDPR-ART22-REQ-004
+    regulation_reference: "GDPR Article 13/14 - Transparency"
+    description: "Data subjects must be informed that automated processing occurs"
+    check:
+      field: gdpr_transparency_notice
+      operator: not_null
+
+actions:
+  on_violation:
+    - Block deployment for EU data processing
+    - Flag for DPO (Data Protection Officer) review
+
+effective_from: "2026-01-01"
+applicable_frameworks: [gdpr]
+owner: compliance-team
+review_cycle: 12 months

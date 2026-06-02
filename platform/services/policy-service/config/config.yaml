@@ -1,0 +1,39 @@
+service:
+  name: policy-service
+  version: "1.0.0"
+  port: 8001
+
+database:
+  url: "${POLICY_DB_URL}"
+  pool_size: 20
+  max_overflow: 10
+
+cache:
+  url: "${REDIS_URL}"
+  policy_decision_ttl_seconds: 300
+  policy_list_ttl_seconds: 60
+  max_cache_size_mb: 512
+
+evaluation:
+  default_conflict_resolution: most_restrictive
+  max_policy_chain_depth: 5      # prevent circular inheritance
+  evaluation_timeout_ms: 9       # hard timeout for inline evaluation
+  fallback_on_timeout: deny      # fail closed on timeout
+
+policy_store:
+  enable_versioning: true
+  max_versions_retained: 100
+  archive_retired_after_days: 30
+
+audit:
+  audit_service_url: "http://audit-service:8003"
+  async_audit: true              # don't block evaluation on audit write
+
+inheritance:
+  cache_resolved_hierarchy: true
+  hierarchy_cache_ttl_seconds: 120
+
+metrics:
+  enabled: true
+  port: 9090
+  include_policy_id_labels: false  # don't expose policy IDs in public metrics

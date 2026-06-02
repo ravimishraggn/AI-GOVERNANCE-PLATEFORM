@@ -1,0 +1,105 @@
+# Approval Workflow: Tier 3 — Committee Review
+# Applies to: High-risk artifacts (score 6.1–10.0) or novel/sensitive deployments
+
+id: WF-APPROVAL-TIER3
+name: tier-3-committee-review
+version: "1.0.0"
+applicable_to:
+  risk_score_min: 6.1
+  or_conditions:
+    - novel_model_integration: true
+    - data_classification: [Restricted, TopSecret]
+    - regulatory_scope: [Investment Advisory, Valuation, AIFMD]
+
+description: >
+  Full committee review for high-risk artifacts. Requires sign-off from Risk,
+  Compliance, and Security functions. Target completion: 10 business days.
+
+committee_composition:
+  required_approvers:
+    - role: risk_manager
+      minimum: 1
+    - role: compliance_officer
+      minimum: 1
+    - role: security_reviewer
+      minimum: 1
+  optional_reviewers:
+    - role: chief_risk_officer
+      required_if: risk_score_gte(8.0)
+    - role: legal_counsel
+      required_if: novel_regulatory_context
+
+sla:
+  total_business_days: 10
+  stage_slas:
+    review_package_preparation: 1
+    initial_review: 3
+    committee_deliberation: 4
+    documentation: 2
+  escalation:
+    at_80_pct: notify_governance_team
+    at_100_pct: notify_caio
+
+stages:
+  - id: STAGE-1
+    name: review_package_preparation
+    type: automated
+    timeout_business_days: 1
+    actions:
+      - Compile risk assessment report
+      - Compile policy compliance report
+      - Compile evaluation scorecard
+      - Compile compliance posture report
+      - Identify precedent artifacts (similar previously approved)
+      - Generate review package PDF
+      - Notify committee members of pending review
+
+  - id: STAGE-2
+    name: risk_review
+    type: human
+    assignee_role: risk_manager
+    timeout_business_days: 3
+    required_decision: true
+    decision_options: [Approve, Reject, RequestChanges, Escalate]
+    must_address:
+      - Risk tier justification
+      - Mitigations adequacy assessment
+      - Monitoring requirements recommendation
+
+  - id: STAGE-3
+    name: compliance_review
+    type: human
+    assignee_role: compliance_officer
+    timeout_business_days: 3
+    required_decision: true
+    must_address:
+      - Applicable regulatory framework coverage
+      - Control adequacy assessment
+      - Any compliance conditions to impose
+
+  - id: STAGE-4
+    name: security_review
+    type: human
+    assignee_role: security_reviewer
+    timeout_business_days: 3
+    required_decision: true
+    must_address:
+      - Threat model adequacy
+      - Security control coverage
+      - Incident response plan for this artifact type
+
+  - id: STAGE-5
+    name: committee_decision
+    type: human
+    assignee_role: governance_lead
+    timeout_business_days: 2
+    actions:
+      - Review all reviewer decisions
+      - Resolve any conflicts between reviewers
+      - Issue final decision with conditions
+      - Document approval rationale (required)
+
+dual_control:
+  required: true
+  # Final approval requires at least 2 committee members in agreement.
+  # One person cannot both recommend and approve.

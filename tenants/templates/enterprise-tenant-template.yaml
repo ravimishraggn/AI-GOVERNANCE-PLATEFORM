@@ -1,0 +1,84 @@
+# Enterprise Tenant Configuration Template
+# Complete this template when provisioning a new enterprise tenant.
+
+apiVersion: governance.platform/v1
+kind: TenantConfiguration
+
+metadata:
+  canonical_name: "YOUR_FIRM_NAME"        # lowercase, hyphens allowed
+  display_name: "Your Firm Display Name"
+  description: "Brief description of the firm and their use of the platform"
+
+profile:
+  tenant_type: EnterpriseCustomer         # InternalTeam | EnterpriseCustomer | ResearchPartner
+  industry: "Private Equity"              # Private Equity | Venture Capital | Credit | Real Assets | Multi-Strategy
+  firm_type: "Fund Manager"               # Fund Manager | Investment Bank | Family Office | etc.
+  employee_count_band: "100-500"          # <50 | 50-100 | 100-500 | 500-2000 | 2000+
+  aum_band: "1B-10B"                      # <100M | 100M-1B | 1B-10B | 10B-50B | 50B+
+
+regulatory_profile:
+  jurisdictions: [US]                     # List all operating jurisdictions
+  sec_registered_adviser: true
+  finra_member: false
+  aifmd_scope: false
+  gdpr_applicable: false
+  applicable_frameworks:                  # Automatically derived but can be overridden
+    - sr-11-7
+    - finra-4511
+    - sec-rule-17a4
+
+isolation_configuration:
+  isolation_tier: Logical                 # Logical | Namespace | Dedicated
+  # Use Namespace for MNPI handlers or regulatory requirement
+  # Use Dedicated for large institutional investors with their own obligations
+
+risk_configuration:
+  # Optional: override platform defaults
+  # default_risk_tolerance: Standard      # Conservative | Standard | Permissive
+  # Firms with more conservative risk tolerance can change approval thresholds:
+  tier_thresholds:
+    minimal: 2.0    # default: 2.0
+    low: 4.0        # default: 4.0
+    moderate: 6.0   # default: 6.0
+    high: 8.0       # default: 8.0
+  acceptance_authority:
+    low: team_lead
+    moderate: risk_team
+    high: cro
+    critical: executive_committee
+
+data_sovereignty:
+  primary_region: us-east-1
+  allowed_regions: [us-east-1, us-west-2]
+  prohibited_regions: []
+  data_localization_required: false
+
+commercial:
+  subscription_tier: Enterprise           # Starter | Professional | Enterprise | Dedicated
+  monthly_token_budget: 10000000         # tokens per month
+  max_agents: 100
+  max_workflows: 50
+  cost_center: "CC-EXTERNAL-001"
+
+governance_contacts:
+  primary:
+    name: "Primary Contact Name"
+    email: "primary@your-firm.com"
+    role: "CTO / Head of Technology"
+  compliance:
+    name: "Compliance Contact Name"
+    email: "compliance@your-firm.com"
+    role: "Chief Compliance Officer"
+  security:
+    name: "Security Contact Name"
+    email: "security@your-firm.com"
+    role: "Information Security Officer"
+  technical:
+    name: "Technical Contact Name"
+    email: "technical@your-firm.com"
+    role: "Platform Technical Lead"
+
+model_provider_restrictions:
+  # Optional: restrict to specific providers for this tenant
+  allowed_providers: []               # empty = all platform-approved providers allowed
+  # Example: [anthropic, azure-openai]  # restrict to these providers only

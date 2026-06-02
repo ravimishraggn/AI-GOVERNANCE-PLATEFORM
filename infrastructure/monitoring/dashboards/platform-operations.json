@@ -1,0 +1,145 @@
+{
+  "dashboard": {
+    "title": "Governance Platform Operations",
+    "description": "Real-time operational health of all Governance Platform services",
+    "audience": "Platform SRE, Platform Engineering",
+    "refresh_interval": "30s"
+  },
+  "sections": [
+    {
+      "title": "Platform Health Overview",
+      "panels": [
+        {
+          "title": "Service Health",
+          "type": "status_grid",
+          "services": [
+            "governance-gateway",
+            "policy-service",
+            "registry-service",
+            "audit-service",
+            "risk-service",
+            "compliance-service",
+            "evaluation-service",
+            "approval-service",
+            "security-service",
+            "observability-service",
+            "lineage-service",
+            "notification-service",
+            "tenant-management-service"
+          ]
+        },
+        {
+          "title": "Governance Gateway Request Rate",
+          "type": "time_series",
+          "metric": "governance_gateway_requests_total",
+          "unit": "req/s"
+        },
+        {
+          "title": "Platform Error Rate",
+          "type": "time_series",
+          "metric": "governance_gateway_error_rate",
+          "unit": "percent",
+          "alert_threshold": 0.01
+        }
+      ]
+    },
+    {
+      "title": "Critical Path Performance",
+      "description": "Policy evaluation and security check are on the inference critical path",
+      "panels": [
+        {
+          "title": "Policy Evaluation Latency",
+          "type": "histogram",
+          "metric": "policy_service_evaluation_duration_ms",
+          "percentiles": ["p50", "p95", "p99"],
+          "sla_markers": { "p99": 10 },
+          "unit": "ms"
+        },
+        {
+          "title": "Policy Cache Hit Rate",
+          "type": "gauge",
+          "metric": "policy_service_cache_hit_rate",
+          "unit": "percent",
+          "target": 0.85
+        },
+        {
+          "title": "Security Evaluation Latency",
+          "type": "histogram",
+          "metric": "security_service_evaluation_duration_ms",
+          "percentiles": ["p50", "p99"],
+          "sla_markers": { "p99": 5 },
+          "unit": "ms"
+        }
+      ]
+    },
+    {
+      "title": "Audit Service Health",
+      "description": "Audit service availability is critical for regulatory compliance",
+      "panels": [
+        {
+          "title": "Audit Write Success Rate",
+          "type": "gauge",
+          "metric": "audit_service_write_success_rate",
+          "unit": "percent",
+          "alert_threshold": 0.999
+        },
+        {
+          "title": "Audit Queue Depth",
+          "type": "time_series",
+          "metric": "audit_service_queue_depth",
+          "alert_threshold": 10000
+        },
+        {
+          "title": "Chain Integrity Status",
+          "type": "status",
+          "metric": "audit_service_chain_integrity_status",
+          "values": { "ok": "green", "degraded": "yellow", "broken": "red" }
+        }
+      ]
+    },
+    {
+      "title": "Approval Workflow Health",
+      "panels": [
+        {
+          "title": "Pending Approvals Count",
+          "type": "gauge",
+          "metric": "approval_service_pending_requests_total",
+          "breakdown": "by_tier"
+        },
+        {
+          "title": "SLA Breach Rate",
+          "type": "time_series",
+          "metric": "approval_service_sla_breach_rate",
+          "alert_threshold": 0.05
+        },
+        {
+          "title": "Tier 1 Auto-Clearance Rate",
+          "type": "gauge",
+          "metric": "approval_service_tier1_clearance_rate",
+          "unit": "percent",
+          "target": 0.75
+        }
+      ]
+    }
+  ],
+  "alerts": [
+    {
+      "name": "PolicyServiceHighLatency",
+      "condition": "policy_service_evaluation_p99_ms > 10",
+      "severity": "Critical",
+      "notification": "pagerduty"
+    },
+    {
+      "name": "AuditServiceDown",
+      "condition": "audit_service_health != 'healthy'",
+      "severity": "Critical",
+      "notification": "pagerduty"
+    },
+    {
+      "name": "GatewayHighErrorRate",
+      "condition": "governance_gateway_error_rate > 0.01",
+      "severity": "High",
+      "notification": "slack"
+    }
+  ]
+}

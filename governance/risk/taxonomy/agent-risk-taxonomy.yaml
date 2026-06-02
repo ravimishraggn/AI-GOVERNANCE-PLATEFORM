@@ -1,0 +1,95 @@
+# Agent Risk Taxonomy
+# Defines all risk factors assessed for AI agents
+
+domain: agent_risk
+version: "1.0.0"
+description: "Risk factors specific to the deployment and operation of AI agents"
+
+factors:
+  - id: ARF-001
+    name: autonomy_risk
+    display_name: "Autonomy Risk"
+    description: >
+      Probability that the agent takes actions with unintended consequences,
+      proportional to its decision authority and execution scope.
+    weight: 0.30
+    scoring_guidance:
+      1-2: Agent is HumanInLoop with narrow tool access (read-only data only)
+      3-4: Agent is HumanInLoop with some write tools, or HumanOnLoop with read-only
+      5-6: Agent is HumanOnLoop with write tools, or handles financial/regulated data
+      7-8: Agent is HumanOnLoop with high-impact tools (financial transactions, communications)
+      9-10: FullyAutonomous with high-impact tools and no automatic escalation
+    mitigations:
+      - Reduce autonomy_level to HumanInLoop
+      - Add human escalation triggers
+      - Remove high-impact tools from tool_set
+      - Implement circuit breaker with aggressive thresholds
+
+  - id: ARF-002
+    name: escalation_risk
+    display_name: "Escalation Risk"
+    description: >
+      Probability that the agent creates action chains that amplify beyond
+      its designed boundaries through tool chaining or sub-agent orchestration.
+    weight: 0.25
+    scoring_guidance:
+      1-2: Max execution depth ≤ 3, no sub-agents, single-task design
+      3-4: Max execution depth ≤ 8, no sub-agents
+      5-6: Max execution depth > 8, or orchestrates 1-2 sub-agents
+      7-8: Complex orchestration with multiple sub-agents and deep chains
+      9-10: Unbounded orchestration without circuit breaker
+    mitigations:
+      - Set max_execution_depth to ≤ 8
+      - Enable circuit_breaker
+      - Limit sub_agents to minimal required set
+
+  - id: ARF-003
+    name: tool_misuse_risk
+    display_name: "Tool Misuse Risk"
+    description: >
+      Probability that the agent invokes tools in ways that cause unintended
+      side effects, including data modification, communication, or financial actions.
+    weight: 0.25
+    scoring_guidance:
+      1-2: Only read-only data lookup tools
+      3-4: Mix of read and limited write tools with low blast radius
+      5-6: Tools that write to internal systems or call external APIs
+      7-8: Tools that send communications, write financial data, or have regulatory implications
+      9-10: Tools with irreversible, high-impact effects (financial transactions, regulatory filings)
+    mitigations:
+      - Remove high-risk tools; use lower-risk alternatives
+      - Add confirmation steps before irreversible tool calls
+      - Restrict tool_set to minimum required
+
+  - id: ARF-004
+    name: loop_risk
+    display_name: "Agent Loop Risk"
+    description: >
+      Probability that the agent enters pathological execution patterns
+      (infinite loops, retry storms, recursive sub-agent calls).
+    weight: 0.10
+    scoring_guidance:
+      1-2: Strong circuit breaker, max_execution_depth ≤ 5, no recursive patterns
+      5-6: Moderate circuit breaker, some looping patterns in design
+      9-10: No circuit breaker, recursive patterns, unbounded retry logic
+    mitigations:
+      - Enable circuit_breaker with aggressive thresholds
+      - Set max_execution_depth
+      - Implement idempotency keys for retry patterns
+
+  - id: ARF-005
+    name: trust_propagation_risk
+    display_name: "Trust Propagation Risk"
+    description: >
+      In multi-agent systems: probability that a compromised agent propagates
+      malicious instructions to other agents in the network.
+    weight: 0.10
+    scoring_guidance:
+      1-2: No sub-agents, isolated operation
+      3-4: Orchestrates other agents but with strict input validation
+      7-8: Orchestrates multiple agents, passes user-controlled content to sub-agents
+      9-10: Fully automated multi-agent network with no input sanitization between agents
+    mitigations:
+      - Validate and sanitize all inputs passed to sub-agents
+      - Implement trust boundaries between agent tiers
+      - Use separate identity contexts for each agent in the network

@@ -1,0 +1,64 @@
+# Platform Policy: PII Handling
+# Scope: Platform (IMMUTABLE BASELINE)
+# Applies to: All agents that process_pii = true
+
+id: PLT-PRIVACY-001
+name: pii-handling-requirements
+domain: Privacy
+scope: Platform
+version: "1.0.0"
+status: Active
+enforcement_mode: Block
+
+description: >
+  All AI artifacts that process personally identifiable information must implement
+  defined PII handling controls. This policy applies regardless of jurisdiction —
+  additional jurisdiction-specific policies (GDPR, CCPA) layer on top.
+
+applicability:
+  artifact_types: [Agent, Workflow, Prompt]
+  conditions:
+    - field: pii_handling.processes_pii
+      operator: equals
+      value: true
+
+requirements:
+  - id: REQ-001
+    description: "PII categories MUST be declared in the governance manifest"
+    check:
+      field: pii_handling.pii_categories
+      operator: not_empty
+
+  - id: REQ-002
+    description: "Data retention policy MUST be specified"
+    check:
+      field: data_retention_policy
+      operator: not_null
+
+  - id: REQ-003
+    description: "Detailed audit logging MUST be enabled"
+    check:
+      field: audit_level
+      operator: equals
+      value: DETAILED
+
+  - id: REQ-004
+    description: "System prompt MUST include PII handling instructions"
+    check:
+      field: pii_handling_instructions_in_prompt
+      operator: equals
+      value: true
+
+  - id: REQ-005
+    description: "PII should not be sent to model provider without data processing agreement"
+    check:
+      condition: provider_has_dpa_for_pii
+
+actions:
+  on_undeclared_pii: Warn and flag for compliance review
+  on_missing_dpa: Block deployment
+
+effective_from: "2026-01-01"
+effective_to: null
+owner: compliance-team
+review_cycle: 12 months

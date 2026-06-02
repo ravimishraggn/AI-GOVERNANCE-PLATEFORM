@@ -1,0 +1,62 @@
+service:
+  name: governance-gateway
+  version: "1.0.0"
+  port: 8000
+  health_port: 8080
+
+authentication:
+  provider: oidc
+  issuer_url: "${OIDC_ISSUER_URL}"
+  audience: "governance-platform"
+  jwks_cache_ttl_seconds: 300
+
+authorization:
+  policy_service_url: "http://policy-service:8001"
+  cache_ttl_seconds: 60
+  fail_open: false                # deny by default if policy service is unavailable
+
+rate_limiting:
+  enabled: true
+  default_requests_per_minute: 1000
+  default_requests_per_day: 100000
+  per_tenant_overrides: {}        # populated from tenant config
+
+routing:
+  policy_service: "http://policy-service:8001"
+  registry_service: "http://registry-service:8002"
+  audit_service: "http://audit-service:8003"
+  risk_service: "http://risk-service:8004"
+  compliance_service: "http://compliance-service:8005"
+  evaluation_service: "http://evaluation-service:8006"
+  approval_service: "http://approval-service:8007"
+  security_service: "http://security-service:8008"
+  observability_service: "http://observability-service:8009"
+  lineage_service: "http://lineage-service:8010"
+  notification_service: "http://notification-service:8011"
+  tenant_management_service: "http://tenant-management-service:8012"
+
+timeout_ms:
+  default: 5000
+  policy_evaluation: 500          # critical path — strict timeout
+  audit_write: 200                # fire-and-forget — short timeout
+  evaluation: 30000               # async — longer timeout acceptable
+
+audit:
+  log_all_requests: true
+  log_response_bodies: false      # do not log response content (privacy)
+  sensitive_headers:              # headers to redact from audit log
+    - Authorization
+    - X-API-Key
+
+cors:
+  allowed_origins:
+    - "https://governance.platform.internal"
+    - "https://developer-portal.platform.internal"
+  allowed_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+  allowed_headers: ["Authorization", "Content-Type", "X-Tenant-ID"]
+
+tls:
+  enabled: true
+  cert_path: "/etc/tls/tls.crt"
+  key_path: "/etc/tls/tls.key"
+  min_version: "TLS1.3"

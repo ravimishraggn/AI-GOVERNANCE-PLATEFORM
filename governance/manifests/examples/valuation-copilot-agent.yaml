@@ -1,0 +1,108 @@
+# Example: Valuation Intelligence Copilot — High-Risk Agent Manifest
+# This example shows a Tier 3 (committee review) manifest for a high-risk agent
+# that assists in private company valuation.
+
+apiVersion: governance.platform/v1
+kind: AgentManifest
+
+metadata:
+  canonical_name: "acme.valuation.portfolio-valuation-copilot-v1"
+  display_name: "Portfolio Company Valuation Copilot"
+  version: "1.0.0"
+  description: >
+    AI copilot that assists the Valuation Committee in quarterly portfolio company
+    valuations. Analyzes comparable transactions, public market multiples, DCF model
+    assumptions, and prior period valuation benchmarks to produce valuation memos
+    for Valuation Committee review. All outputs are reviewed and approved by the
+    independent Valuation Committee before being used in financial statements.
+    This agent does NOT produce final valuations — it produces supporting analysis.
+
+ownership:
+  business_owner:
+    name: "Michael Torres"
+    email: "m.torres@acme-capital.com"
+  technical_owner:
+    name: "Priya Sharma"
+    email: "p.sharma@acme-capital.com"
+  owning_team: "valuation-team"
+  owning_tenant: "acme-capital"
+
+classification:
+  agent_type: Valuation
+  use_case: >
+    Quarterly portfolio company valuation support. Analyzes financial data,
+    comparable transactions, and market data to support independent valuation.
+    Used exclusively by the Valuation Committee. Output feeds valuation memos
+    reviewed before being incorporated into LP financial statements.
+  target_users:
+    - Valuation Committee Members
+    - Senior Finance Analysts
+  autonomy_level: HumanInLoop
+  # Every valuation output goes through mandatory Committee review.
+  # This agent cannot produce a final valuation — it produces analysis for humans.
+
+composition:
+  primary_model: "claude-sonnet-4-6"
+  fallback_models: []
+  tool_set:
+    - "tool-comparable-transaction-database"
+    - "tool-public-market-multiples"
+    - "tool-portfolio-financial-data"
+    - "tool-valuation-model-reader"
+  knowledge_sources:
+    - "ks-valuation-methodologies-v2"
+    - "ks-prior-period-valuations-v1"
+  prompt_set:
+    - "prompt-valuation-analysis-system-v1"
+    - "prompt-comparable-analysis-v1"
+
+data_governance:
+  data_classification: Restricted
+  # Portfolio company financial data is Restricted — confidential to GPs and LPs
+  pii_handling:
+    processes_pii: false
+  mnpi_exposure: false
+  # Portfolio companies are not public, so MNPI rules for public securities do not apply.
+  # However, this data is still subject to confidentiality obligations.
+  data_retention_policy: "financial-statement-7-year"
+
+risk:
+  max_execution_depth: 5
+  # Valuation analysis is a bounded task — deep tool chains are not expected
+  circuit_breaker:
+    enabled: true
+    error_threshold: 0.2      # stricter: fail after 20% errors in valuation context
+    time_window_seconds: 60
+    cooldown_seconds: 900
+  human_escalation:
+    escalation_triggers:
+      - "insufficient_comparables_found"
+      - "data_quality_below_threshold"
+      - "methodology_deviation_detected"
+      - "significant_variance_from_prior_period"
+    escalation_contact: "valuation-committee@acme-capital.com"
+
+compliance:
+  applicable_frameworks: [sr-11-7, aifmd, finra-4511]
+  regulatory_scope: "Portfolio Valuation — AIFMD Article 19"
+  explainability_requirement: Full
+  # AIFMD requires full explainability for valuation methodology
+
+  known_limitations: >
+    This agent relies on publicly available comparable transaction data and
+    market multiples. Private company transaction data coverage may be incomplete
+    for certain geographies or sectors. Agent outputs should be treated as
+    analytical support, not authoritative valuations.
+
+operational:
+  sla:
+    expected_p50_latency_ms: 15000
+    expected_p99_latency_ms: 60000
+  cost_controls:
+    max_cost_per_execution_usd: 3.00
+    monthly_budget_usd: 1500
+  tags:
+    environment: production
+    team: valuation
+    asset_class: private-equity
+    regulatory_context: aifmd-valuation

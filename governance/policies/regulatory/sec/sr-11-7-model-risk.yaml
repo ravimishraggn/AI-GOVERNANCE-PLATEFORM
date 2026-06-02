@@ -1,0 +1,86 @@
+# Regulatory Policy: SR 11-7 Model Risk Management
+# Scope: Regulatory
+# Applies to: SEC-registered investment advisers and bank holding companies
+
+id: REG-SEC-SR117-001
+name: sr-11-7-model-risk-management
+domain: Compliance
+scope: Regulatory
+version: "1.0.0"
+status: Active
+enforcement_mode: Block
+
+description: >
+  Implements governance controls required by Federal Reserve Supervisory Letter SR 11-7
+  and OCC Bulletin 2011-12 for Model Risk Management. Applies to all AI models used in
+  investment-related decisions by SEC-registered entities.
+
+applicability:
+  tenant_criteria:
+    sec_registered_adviser: true
+  artifact_types: [Agent, Workflow]
+  conditions:
+    - field: regulatory_scope
+      operator: contains_any
+      values: [Investment Advisory, Research, Valuation, Risk Management]
+
+requirements:
+  - id: SR117-REQ-001
+    regulation_reference: "SR 11-7 Section II - Model Development"
+    description: "Model documentation MUST include purpose, limitations, and assumptions"
+    check:
+      field: description
+      operator: min_length
+      value: 200
+    check_additional:
+      field: known_limitations
+      operator: not_null
+
+  - id: SR117-REQ-002
+    regulation_reference: "SR 11-7 Section III - Model Validation"
+    description: "Models MUST be validated by a function independent of development"
+    check:
+      condition: mrm_certification.status == "Certified"
+      check_independence: mrm_certified_by != development_team
+
+  - id: SR117-REQ-003
+    regulation_reference: "SR 11-7 Section III - Ongoing Monitoring"
+    description: "Models in production MUST be monitored for performance degradation"
+    check:
+      condition: observability_monitoring_enabled
+      check: evaluation_monitoring_enabled
+
+  - id: SR117-REQ-004
+    regulation_reference: "SR 11-7 Section IV - Governance"
+    description: "Senior management accountability MUST be established"
+    check:
+      field: business_owner
+      operator: not_null
+    check_additional:
+      field: applicable_frameworks
+      operator: contains
+      value: sr-11-7
+
+  - id: SR117-REQ-005
+    regulation_reference: "SR 11-7 - Model Inventory"
+    description: "All models MUST be registered in the model inventory"
+    check:
+      condition: artifact_registered_in_registry
+
+actions:
+  on_violation:
+    - Block deployment
+    - Flag for MRM team review
+    - Log compliance gap in compliance posture
+
+exception_process:
+  allowed: true
+  requires:
+    - Chief Risk Officer approval
+    - Time limit: 90 days maximum
+    - Compensating control documentation required
+
+effective_from: "2026-01-01"
+applicable_frameworks: [sr-11-7, occ-2011-12]
+owner: compliance-team
+review_cycle: 12 months

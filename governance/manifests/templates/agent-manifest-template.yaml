@@ -1,0 +1,163 @@
+# Agent Governance Manifest Template
+#
+# Complete this manifest for every agent you want to register on the platform.
+# Fields marked REQUIRED must be present. Fields marked OPTIONAL can be omitted
+# if not applicable, but providing them improves your governance posture score.
+#
+# Submit via: governance-cli submit --manifest this-file.yaml
+# Validate locally: governance-cli validate --manifest this-file.yaml
+
+apiVersion: governance.platform/v1
+kind: AgentManifest
+
+# ── IDENTITY (REQUIRED) ──────────────────────────────────────────────────────
+
+metadata:
+  canonical_name: "YOUR_ORG.YOUR_TEAM.YOUR_AGENT_NAME"
+  # Format: org.team.agent-name (all lowercase, hyphens allowed)
+  # Example: acme.research.investment-analyst-v2
+
+  display_name: "Your Agent Display Name"
+  version: "1.0.0"
+  description: >
+    Describe what this agent does, for whom, and why.
+    Be specific about its business purpose. Minimum 50 characters.
+    This description is used by governance reviewers and auditors.
+
+# ── OWNERSHIP (REQUIRED) ─────────────────────────────────────────────────────
+
+ownership:
+  business_owner:
+    name: "First Last"
+    email: "owner@your-org.com"
+    # Accountable for WHAT the agent does and business decisions it enables
+
+  technical_owner:
+    name: "First Last"
+    email: "tech-owner@your-org.com"
+    # Accountable for HOW the agent works and that it behaves correctly
+
+  owning_team: "your-team-id"
+  owning_tenant: "your-tenant-id"
+
+# ── CLASSIFICATION (REQUIRED) ────────────────────────────────────────────────
+
+classification:
+  agent_type: Conversational
+  # Options: Conversational, TaskExecution, Research, Orchestration,
+  #          Monitoring, Valuation, Analysis
+
+  use_case: >
+    Describe the specific business use case. What decisions does this agent
+    support? Who are the users? What business process does it belong to?
+
+  target_users:
+    - "Investment Analysts"
+    # List the user roles who will interact with this agent
+
+  autonomy_level: HumanInLoop
+  # Options:
+  #   HumanInLoop     — human approves every significant action (default, safest)
+  #   HumanOnLoop     — human can intervene; agent acts autonomously by default
+  #   FullyAutonomous — no human checkpoint (requires justification and committee approval)
+
+  # REQUIRED if autonomy_level is FullyAutonomous:
+  # autonomy_level_justification: >
+  #   Explain why full autonomy is required and what safeguards compensate
+  #   for the absence of human review at each step.
+
+# ── AI COMPOSITION (REQUIRED) ────────────────────────────────────────────────
+
+composition:
+  primary_model: "claude-sonnet-4-6"
+  # Must be a model_id from the approved model registry
+  # See: governance-cli list-models --approved
+
+  fallback_models: []
+  # Optional: fallback models if primary is unavailable
+
+  tool_set: []
+  # List of tool_ids this agent is authorized to call
+  # Each tool must be registered in the tool registry
+  # Example: ["tool-id-1", "tool-id-2"]
+
+  knowledge_sources: []
+  # List of knowledge_asset_ids this agent accesses
+  # Example: ["ks-portfolio-docs-v2", "ks-market-data-v1"]
+
+  prompt_set: []
+  # List of prompt_ids used by this agent
+  # Example: ["prompt-investment-research-system-v2"]
+
+  sub_agents: []
+  # For orchestration agents: list of agent_ids this agent orchestrates
+
+# ── DATA GOVERNANCE (REQUIRED) ───────────────────────────────────────────────
+
+data_governance:
+  data_classification: Internal
+  # Options: Public, Internal, Confidential, Restricted, TopSecret
+  # Use the HIGHEST classification of any data this agent touches
+
+  pii_handling:
+    processes_pii: false
+    # If true, you MUST specify pii_categories below
+    # pii_categories:
+    #   - EmployeeName
+    #   - ContactInfo
+
+  mnpi_exposure: false
+  # Set true if this agent handles Material Non-Public Information
+
+  data_retention_policy: "standard-90-day"
+  # Reference to your team's data retention policy configuration
+
+# ── RISK CONFIGURATION (OPTIONAL but recommended) ────────────────────────────
+
+risk:
+  max_execution_depth: 10
+  # Maximum tool call chain depth before circuit breaker triggers
+
+  circuit_breaker:
+    enabled: true
+    error_threshold: 0.5      # trigger after 50% error rate
+    time_window_seconds: 60
+    cooldown_seconds: 300
+
+  human_escalation:
+    escalation_triggers:
+      - "confidence_below_threshold"
+      - "ambiguous_instructions"
+      - "regulatory_trigger_detected"
+    escalation_contact: "team-lead@your-org.com"
+
+# ── COMPLIANCE (OPTIONAL, required for regulated use cases) ──────────────────
+
+compliance:
+  applicable_frameworks: []
+  # List regulatory frameworks that apply to this agent's use case
+  # Options: sr-11-7, gdpr, finra-4511, aifmd, sec-reg-bi
+  # Example: [sr-11-7, finra-4511]
+
+  regulatory_scope: ""
+  # Describe the regulatory context: "Investment Advisory", "Research", etc.
+
+  explainability_requirement: None
+  # Options: None, Basic, Full, Regulatory
+  # Use "Regulatory" for SR 11-7 governed models
+
+# ── OPERATIONAL (OPTIONAL) ───────────────────────────────────────────────────
+
+operational:
+  sla:
+    expected_p50_latency_ms: 2000
+    expected_p99_latency_ms: 10000
+
+  cost_controls:
+    max_cost_per_execution_usd: 0.50
+    monthly_budget_usd: 500
+
+  tags:
+    environment: production
+    team: your-team
+    project: your-project

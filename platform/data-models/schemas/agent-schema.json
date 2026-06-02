@@ -1,0 +1,149 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://governance.platform.internal/schemas/agent/v1",
+  "title": "AgentRecord",
+  "description": "Governance metadata record for an AI agent",
+  "type": "object",
+  "required": [
+    "canonical_name",
+    "agent_type",
+    "autonomy_level",
+    "primary_model",
+    "data_classification",
+    "use_case",
+    "business_owner",
+    "technical_owner",
+    "owning_team",
+    "owning_tenant"
+  ],
+  "properties": {
+    "agent_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Platform-assigned immutable identifier. Do not set — assigned on registration."
+    },
+    "canonical_name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$",
+      "description": "Stable dot-namespaced identifier. e.g. org.team.agent-name",
+      "examples": ["acme.research.investment-analyst-v2"]
+    },
+    "display_name": {
+      "type": "string",
+      "maxLength": 100
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version of this agent configuration"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 2000,
+      "description": "What this agent does, for whom, and why"
+    },
+    "agent_type": {
+      "type": "string",
+      "enum": ["Conversational", "TaskExecution", "Research", "Orchestration", "Monitoring", "Valuation", "Analysis"]
+    },
+    "use_case": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Business use case description"
+    },
+    "target_users": {
+      "type": "array",
+      "items": { "type": "string" },
+      "examples": [["Investment Analysts", "Portfolio Managers"]]
+    },
+    "autonomy_level": {
+      "type": "string",
+      "enum": ["HumanInLoop", "HumanOnLoop", "FullyAutonomous"],
+      "description": "HumanInLoop: human approves every action. HumanOnLoop: human can intervene. FullyAutonomous: no human checkpoint."
+    },
+    "primary_model": {
+      "type": "string",
+      "description": "Registered model_id of primary LLM"
+    },
+    "fallback_models": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "tool_set": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "tool_ids of all tools this agent is authorized to call"
+    },
+    "knowledge_sources": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "prompt_set": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "data_classification": {
+      "type": "string",
+      "enum": ["Public", "Internal", "Confidential", "Restricted", "TopSecret"]
+    },
+    "pii_handling": {
+      "type": "object",
+      "properties": {
+        "processes_pii": { "type": "boolean" },
+        "pii_categories": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["processes_pii"]
+    },
+    "mnpi_exposure": {
+      "type": "boolean",
+      "description": "Does this agent handle material non-public information?"
+    },
+    "autonomy_level_justification": {
+      "type": "string",
+      "description": "Required when autonomy_level is FullyAutonomous"
+    },
+    "business_owner": {
+      "type": "object",
+      "required": ["name", "email"],
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" }
+      }
+    },
+    "technical_owner": {
+      "type": "object",
+      "required": ["name", "email"],
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" }
+      }
+    },
+    "owning_team": { "type": "string" },
+    "owning_tenant": { "type": "string" },
+    "applicable_frameworks": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "max_execution_depth": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 50,
+      "default": 10
+    },
+    "circuit_breaker": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "error_threshold": { "type": "number", "minimum": 0, "maximum": 1 },
+        "time_window_seconds": { "type": "integer" },
+        "cooldown_seconds": { "type": "integer" }
+      }
+    }
+  },
+  "if": {
+    "properties": { "autonomy_level": { "const": "FullyAutonomous" } }
+  },
+  "then": {
+    "required": ["autonomy_level_justification"]
+  }
+}

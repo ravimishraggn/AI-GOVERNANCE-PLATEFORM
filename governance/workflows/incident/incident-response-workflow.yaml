@@ -1,0 +1,92 @@
+# Incident Response Workflow for AI Governance Events
+
+id: WF-INCIDENT-001
+name: ai-governance-incident-response
+version: "1.0.0"
+
+description: >
+  Standardized incident response workflow for governance-relevant AI incidents
+  including security events, policy violations, evaluation regressions, and
+  behavioral anomalies.
+
+severity_classification:
+  Critical:
+    criteria:
+      - Safety benchmark failure in production
+      - Data exfiltration suspected
+      - Regulatory compliance violation
+      - FullyAutonomous agent exhibiting unintended behavior
+    response_time: 1 hour
+    escalation: immediate to CAIO + CRO + CISO
+
+  High:
+    criteria:
+      - Risk threshold breached by > 2 tiers
+      - Security incident involving Restricted data
+      - Multiple policy violations in same artifact
+    response_time: 4 hours
+    escalation: Risk team + Security team
+
+  Medium:
+    criteria:
+      - Evaluation regression (non-safety)
+      - Single policy violation
+      - Risk threshold warning breach
+    response_time: next business day
+    escalation: Artifact owner + Governance team
+
+  Low:
+    criteria:
+      - Single anomalous event
+      - Cost anomaly
+      - SLA breach
+    response_time: 3 business days
+    escalation: Artifact owner
+
+stages:
+  - id: STAGE-1
+    name: detection_and_triage
+    actions:
+      - Auto-detect from monitoring signals or manual report
+      - Classify severity using criteria above
+      - Assign incident ID and create incident record in Audit Service
+      - Notify responders based on severity
+
+  - id: STAGE-2
+    name: containment
+    actions:
+      - For Critical/High: immediately suspend artifact deployment credentials
+      - Block new invocations via Policy Service (emergency policy override)
+      - Preserve all evidence (audit trail snapshot, telemetry export)
+      - Notify affected tenants if cross-tenant impact
+
+  - id: STAGE-3
+    name: investigation
+    actions:
+      - Reconstruct the complete governance state at incident time
+      - Trace lineage from incident event to root cause
+      - Assess scope: which users, tenants, data affected
+      - Determine if regulatory notification is required
+
+  - id: STAGE-4
+    name: remediation
+    actions:
+      - Apply fix (prompt rollback, model version change, policy update, tool restriction)
+      - Run evaluation benchmark suite to verify fix
+      - Update risk profile to reflect incident history
+      - Document remediation in incident record
+
+  - id: STAGE-5
+    name: review_and_closure
+    actions:
+      - Conduct post-incident review
+      - Update threat model for affected artifact type
+      - Determine if platform-wide changes required
+      - Close incident with complete root cause documentation
+      - Schedule re-certification if required
+
+post_incident_actions:
+  - Update artifact risk score (security incidents increase risk score)
+  - Update applicable security detection rules
+  - Consider adding to red team benchmark dataset
+  - Notify compliance team if regulatory implications

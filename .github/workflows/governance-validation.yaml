@@ -1,0 +1,124 @@
+# CI/CD: Governance Validation Pipeline
+#
+# Runs governance pre-deployment validation on every pull request.
+# Validates governance manifests, checks policy compliance, and verifies
+# that any changed AI artifacts maintain their governance posture.
+#
+# This workflow MUST pass before any merge to main.
+
+name: Governance Validation
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+
+  validate-manifests:
+    name: Validate Governance Manifests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Governance CLI
+        run: pip install ai-governance-cli
+
+      - name: Find changed governance manifests
+        id: changed-manifests
+        run: |
+          git diff --name-only origin/main...HEAD | \
+            grep -E '\.(yaml|yml)$' | \
+            grep -E '(manifest|agent|workflow|prompt)' > changed_manifests.txt
+          echo "count=$(wc -l < changed_manifests.txt)" >> $GITHUB_OUTPUT
+
+      - name: Validate manifest schema
+        if: steps.changed-manifests.outputs.count > 0
+        run: |
+          while IFS= read -r manifest; do
+            echo "Validating: $manifest"
+            governance-cli validate --manifest "$manifest" --schema-only
+          done < changed_manifests.txt
+
+      - name: Check policy compliance (dry run)
+        if: steps.changed-manifests.outputs.count > 0
+        env:
+          GOVERNANCE_API_URL: ${{ secrets.GOVERNANCE_API_URL }}
+          GOVERNANCE_CI_TOKEN: ${{ secrets.GOVERNANCE_CI_TOKEN }}
+        run: |
+          while IFS= read -r manifest; do
+            echo "Policy check: $manifest"
+            governance-cli check-policies --manifest "$manifest" \
+              --environment staging \
+              --exit-on-violation
+          done < changed_manifests.txt
+
+  validate-policies:
+    name: Validate Policy Files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Governance CLI
+        run: pip install ai-governance-cli
+
+      - name: Find changed policy files
+        id: changed-policies
+        run: |
+          git diff --name-only origin/main...HEAD | \
+            grep 'governance/policies/' > changed_policies.txt
+          echo "count=$(wc -l < changed_policies.txt)" >> $GITHUB_OUTPUT
+
+      - name: Validate policy syntax
+        if: steps.changed-policies.outputs.count > 0
+        run: |
+          while IFS= read -r policy; do
+            echo "Validating policy: $policy"
+            governance-cli validate --policy "$policy"
+          done < changed_policies.txt
+
+      - name: Simulate policy impact
+        if: steps.changed-policies.outputs.count > 0
+        env:
+          GOVERNANCE_API_URL: ${{ secrets.GOVERNANCE_API_URL }}
+          GOVERNANCE_CI_TOKEN: ${{ secrets.GOVERNANCE_CI_TOKEN }}
+        run: |
+          while IFS= read -r policy; do
+            echo "Impact simulation: $policy"
+            governance-cli simulate-policy-impact --policy "$policy" \
+              --output impact-report.json
+            cat impact-report.json
+          done < changed_policies.txt
+
+  check-governance-health:
+    name: Check Governance Platform Health
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify Governance Platform is healthy
+        env:
+          GOVERNANCE_API_URL: ${{ secrets.GOVERNANCE_API_URL }}
+          GOVERNANCE_CI_TOKEN: ${{ secrets.GOVERNANCE_CI_TOKEN }}
+        run: |
+          response=$(curl -sf \
+            -H "Authorization: Bearer $GOVERNANCE_CI_TOKEN" \
+            "$GOVERNANCE_API_URL/health")
+          echo $response
+          echo $response | python3 -c "
+          import sys, json
+          h = json.load(sys.stdin)
+          assert h['status'] == 'healthy', f'Platform unhealthy: {h}'
+          print('Governance Platform is healthy')
+          "

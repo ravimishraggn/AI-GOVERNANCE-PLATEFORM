@@ -1,0 +1,53 @@
+# Policy Rule Plugin Interface
+# Extension Point: PolicyRule
+# Purpose: Register custom policy rule evaluators
+
+interface:
+  name: PolicyRuleInterface
+  version: "1.0"
+  description: >
+    Implement this interface to add custom policy rule evaluation logic.
+    Your plugin receives an artifact and its context, evaluates your custom rules,
+    and returns a RuleEvaluationResult.
+
+methods:
+  - name: GetSupportedRuleTypes
+    description: "Return the list of policy rule types this plugin can evaluate"
+    input: none
+    output:
+      type: string[]
+      description: "List of rule_type identifiers (e.g., ['my-org.custom-rule-v1'])"
+
+  - name: EvaluateRule
+    description: "Evaluate a specific rule against an artifact"
+    input:
+      rule:
+        type: PolicyRule
+        description: "The rule to evaluate"
+      artifact:
+        type: ArtifactMetadata
+        description: "The artifact being evaluated (read-only)"
+      context:
+        type: EvaluationContext
+        description: "Request context including tenant and session info"
+    output:
+      type: RuleEvaluationResult
+      schema:
+        passed: boolean
+        violations: PolicyViolation[]
+        warnings: string[]
+        evaluation_notes: string
+
+  - name: HealthCheck
+    description: "Return plugin health status"
+    output:
+      type: PluginHealth
+      schema:
+        healthy: boolean
+        message: string
+
+performance_requirements:
+  max_latency_ms: 8   # must return within 8ms for inline policy evaluation
+  behavior_on_timeout: pass_with_warning
+  # Plugin timeout causes a governance warning, not a block.
+  # Critical safety decisions use platform-native rules, not plugins.

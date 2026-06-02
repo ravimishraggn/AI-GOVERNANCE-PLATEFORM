@@ -1,0 +1,66 @@
+service:
+  name: risk-service
+  version: "1.0.0"
+  port: 8004
+
+risk_model:
+  version: "1.0.0"
+  methodology: weighted_composite
+
+  # Default dimension weights — overridable per tenant
+  default_dimension_weights:
+    agent_risk: 0.25
+    model_risk: 0.20
+    data_risk: 0.20
+    prompt_risk: 0.15
+    workflow_risk: 0.10
+    regulatory_risk: 0.10
+
+  # Default tier thresholds — overridable per tenant
+  default_tier_thresholds:
+    minimal: 2.0
+    low: 4.0
+    moderate: 6.0
+    high: 8.0
+    # critical: > 8.0
+
+  # Amplification: domains with high absolute scores get amplified weight
+  score_amplification:
+    enabled: true
+    threshold: 7.0              # amplify domains scoring above this
+    amplification_factor: 1.5
+
+reassessment:
+  # Automatic reassessment schedules by risk tier
+  schedule_by_tier:
+    minimal: "0 0 1 * *"        # annually
+    low: "0 0 1 */6 *"          # semi-annually
+    moderate: "0 0 1 */3 *"     # quarterly
+    high: "0 0 1 * *"           # monthly
+
+  # Events that trigger immediate reassessment
+  trigger_events:
+    - artifact.configuration_changed
+    - evaluation.regression_detected
+    - security.incident_raised
+    - observability.anomaly_detected
+    - compliance.gap_detected
+
+acceptance:
+  # Maximum acceptance duration by risk tier
+  max_acceptance_duration_days:
+    low: 365
+    moderate: 180
+    high: 90
+    critical: 30              # critical risk acceptance must be very short-lived
+
+  # Who can grant acceptance by risk tier
+  acceptance_authority:
+    low: team_lead
+    moderate: risk_team
+    high: chief_risk_officer
+    critical: executive_committee
+
+database:
+  url: "${RISK_DB_URL}"
+  pool_size: 10

@@ -1,0 +1,99 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://governance.platform.internal/schemas/audit-event/v1",
+  "title": "AuditEvent",
+  "description": "Immutable governance audit event",
+  "type": "object",
+  "required": [
+    "id",
+    "sequence_number",
+    "event_type",
+    "event_timestamp",
+    "actor",
+    "subject",
+    "action",
+    "outcome",
+    "previous_hash",
+    "event_hash",
+    "signature",
+    "tenant_id"
+  ],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "sequence_number": {
+      "type": "integer",
+      "description": "Monotonically increasing per tenant. Gaps indicate missing events."
+    },
+    "event_type": {
+      "type": "string",
+      "description": "Dot-namespaced event type from the event catalog"
+    },
+    "event_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC timestamp with nanosecond precision"
+    },
+    "actor": {
+      "type": "object",
+      "required": ["actor_type", "actor_id"],
+      "properties": {
+        "actor_type": {
+          "type": "string",
+          "enum": ["User", "System", "Agent", "ExternalService"]
+        },
+        "actor_id": { "type": "string" },
+        "actor_tenant": { "type": "string" }
+      }
+    },
+    "subject": {
+      "type": "object",
+      "required": ["subject_type", "subject_id"],
+      "properties": {
+        "subject_type": { "type": "string" },
+        "subject_id": { "type": "string" },
+        "subject_version": { "type": "string" }
+      }
+    },
+    "action": { "type": "string" },
+    "outcome": {
+      "type": "string",
+      "enum": ["Success", "Failure", "Partial"]
+    },
+    "policy_context": {
+      "type": "object",
+      "description": "Snapshot of policy evaluation state at event time"
+    },
+    "risk_context": {
+      "type": "object",
+      "description": "Snapshot of risk score at event time"
+    },
+    "compliance_context": {
+      "type": "object",
+      "description": "Snapshot of compliance posture at event time"
+    },
+    "event_data": {
+      "type": "string",
+      "description": "Encrypted JSON with event-specific payload"
+    },
+    "previous_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 hash of the previous event in the chain"
+    },
+    "event_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 hash of this event's content"
+    },
+    "signature": {
+      "type": "string",
+      "description": "Digital signature by Governance Platform HSM key"
+    },
+    "retention_class": {
+      "type": "string",
+      "enum": ["execution_7y", "policy_7y", "approval_10y", "security_3y", "config_indefinite"]
+    },
+    "tenant_id": { "type": "string", "format": "uuid" }
+  },
+  "additionalProperties": false
+}

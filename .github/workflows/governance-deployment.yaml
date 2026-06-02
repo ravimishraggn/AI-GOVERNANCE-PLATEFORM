@@ -1,0 +1,98 @@
+# CI/CD: Governance Platform Deployment Pipeline
+#
+# Deploys governance platform services on merge to main.
+# Includes governance pre-checks on the governance platform itself
+# (the platform governs itself).
+
+name: Governance Platform Deployment
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'platform/services/**'
+      - 'governance/policies/**'
+      - 'infrastructure/deployment/**'
+
+jobs:
+
+  governance-self-check:
+    name: Self-Governance Pre-Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run platform self-governance check
+        env:
+          GOVERNANCE_API_URL: ${{ secrets.GOVERNANCE_API_URL_STAGING }}
+          GOVERNANCE_CI_TOKEN: ${{ secrets.GOVERNANCE_CI_TOKEN }}
+        run: |
+          # The Governance Platform itself is registered as an artifact.
+          # Before deploying changes, verify the platform's own governance posture.
+          governance-cli status \
+            --artifact governance-platform \
+            --environment staging \
+            --require-certified
+
+  deploy-staging:
+    name: Deploy to Staging
+    needs: governance-self-check
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy services to staging
+        env:
+          KUBECONFIG: ${{ secrets.STAGING_KUBECONFIG }}
+        run: |
+          kubectl apply -f infrastructure/deployment/kubernetes/ \
+            --namespace governance-staging
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/governance-gateway \
+            --namespace governance-staging --timeout=300s
+
+      - name: Run governance integration tests
+        run: |
+          governance-cli integration-test \
+            --environment staging \
+            --suite all \
+            --timeout 600
+
+  deploy-production:
+    name: Deploy to Production
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    environment: production   # requires manual approval in GitHub Environments
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to production
+        env:
+          KUBECONFIG: ${{ secrets.PRODUCTION_KUBECONFIG }}
+        run: |
+          kubectl apply -f infrastructure/deployment/kubernetes/ \
+            --namespace governance-production
+
+      - name: Verify production deployment
+        env:
+          GOVERNANCE_API_URL: ${{ secrets.GOVERNANCE_API_URL_PRODUCTION }}
+          GOVERNANCE_CI_TOKEN: ${{ secrets.GOVERNANCE_CI_TOKEN }}
+        run: |
+          governance-cli health-check \
+            --environment production \
+            --services all \
+            --timeout 120
+
+      - name: Record deployment in audit trail
+        env:
+          GOVERNANCE_API_URL: ${{ secrets.GOVERNANCE_API_URL_PRODUCTION }}
+          GOVERNANCE_CI_TOKEN: ${{ secrets.GOVERNANCE_CI_TOKEN }}
+        run: |
+          governance-cli record-deployment \
+            --artifact governance-platform \
+            --version ${{ github.sha }} \
+            --environment production \
+            --deployed-by ${{ github.actor }}
