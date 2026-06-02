@@ -62,7 +62,7 @@
 The governance capability described here is equivalent in scope to:
 - Microsoft Azure AI Content Safety + Azure Policy + Microsoft Purview (combined)
 - AWS Bedrock Guardrails + AWS Config + AWS CloudTrail AI extensions
-- The internal governance platforms at BlackRock Aladdin, Bloomberg Terminal AI, or S&P Global Market Intelligence AI
+- The internal governance platforms at BlackRock Aladdin, Bloomberg Terminal AI.
 
 The differentiator is that this platform is purpose-built for Private Markets domain
 requirements — valuation governance, MNPI controls, fund-level compliance — rather than
